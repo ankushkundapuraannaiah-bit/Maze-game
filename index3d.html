@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Cyber Maze 3D — Nemesis AI Chaser</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="styles3d.css">
+
+  <!-- Three.js + OrbitControls via importmap (no build tool) -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three":           "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+        "three/addons/":   "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+
+  <!-- Three.js full-screen canvas (mazebreaker style: class="threejs") -->
+  <canvas class="threejs"></canvas>
+
+  <!-- ════════════════════════════════════════════════
+       START SCREEN
+  ════════════════════════════════════════════════ -->
+  <div id="start-screen" class="overlay">
+    <!-- Corner toolbar (mazebreaker exact) -->
+    <div class="corner-toolbar">
+      <button id="settings-toggle" class="settings-toggle-btn">Settings</button>
+      <button id="howtoplay-toggle" class="settings-toggle-btn">How To Play</button>
+    </div>
+
+    <h1>CYBER MAZE 3D</h1>
+    <p style="color:rgba(255,255,255,0.6); margin:0 0 1.2em; font-size:0.95rem;">
+      Nemesis AI Chaser &mdash; Real-Time Pathfinding
+    </p>
+
+    <!-- Difficulty selector (primary choice) -->
+    <div class="diff-selector">
+      <h3 style="margin:0 0 0.7em; font-size:1rem; color:rgba(255,255,255,0.8);">Choose Difficulty</h3>
+      <div class="diff-grid">
+        <button class="diff-btn" data-diff="easy" style="--dc:#00ff00">
+          <span class="diff-label">EASY</span>
+          <span class="diff-desc">Slow Nemesis · 11×11 · 3 EMPs</span>
+        </button>
+        <button class="diff-btn active" data-diff="medium" style="--dc:#ffaa00">
+          <span class="diff-label">MEDIUM</span>
+          <span class="diff-desc">Steady Nemesis · 17×17 · 2 EMPs</span>
+        </button>
+        <button class="diff-btn" data-diff="hard" style="--dc:#ff4400">
+          <span class="diff-label">HARD</span>
+          <span class="diff-desc">Fast Nemesis · 23×23 · Always chases</span>
+        </button>
+        <button class="diff-btn" data-diff="nightmare" style="--dc:#ff0055">
+          <span class="diff-label">NIGHTMARE</span>
+          <span class="diff-desc">Furious Nemesis · 31×31 · No mercy</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Or use custom grid size slider -->
+    <details class="custom-size-details" style="width:100%;max-width:400px;margin-bottom:1.2em;">
+      <summary style="cursor:pointer;color:rgba(255,255,255,0.5);font-size:0.85rem;text-align:center;padding:0.4em;list-style:none;">
+        ▸ Custom grid size
+      </summary>
+      <div class="level-slider-container" style="margin-top:0.8em;margin-bottom:0;">
+        <h3>Grid Size: <span id="level-value">17</span></h3>
+        <input type="range" id="level-slider" min="7" max="61" value="17" step="2">
+      </div>
+    </details>
+
+    <div id="settings-panel" class="settings-panel" style="display:none;">
+      <div class="setting-row">
+        <label>Look Sensitivity: <span id="sens-value">4</span></label>
+        <input type="range" id="sens-slider" min="1" max="10" step="1" value="4">
+      </div>
+      <button id="settings-reset-btn" class="settings-reset-btn">Reset to Default</button>
+    </div>
+
+    <!-- Mode selection (mazebreaker exact) -->
+    <div class="mode-selection">
+      <div class="mode-card">
+        <h3>🛰 Chase Cam</h3>
+        <p>Cinematic third-person view. WASD moves on the map. Outrun Nemesis AI, grab Data Cores and reach the exit.</p>
+        <button id="start-solve-btn">Start Chase Cam</button>
+      </div>
+      <div class="mode-card">
+        <h3>🏃 First Person</h3>
+        <p>First-person 3D. Use WASD + mouse to escape. The AI chases you using A* pathfinding in real time. Click to lock cursor.</p>
+        <button id="start-run-btn">Start Running</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       HOW TO PLAY
+  ════════════════════════════════════════════════ -->
+  <div id="howtoplay-overlay" class="overlay" style="display:none;">
+    <div class="howtoplay-panel">
+      <h2>How To Play</h2>
+      <ol class="howtoplay-list">
+        <li>Choose a <strong>Difficulty</strong> or <strong>Grid Size</strong> with the slider (7×7 easy → 61×61 extreme).</li>
+        <li>
+          <strong>Pick a mode:</strong>
+          <ul>
+            <li><strong>Chase Cam</strong> — Cinematic third-person follow. WASD/Arrows to navigate.</li>
+            <li><strong>First Person</strong> — Immersive 3D runner. WASD + mouse to look around and sprint. Click canvas to lock cursor.</li>
+          </ul>
+        </li>
+        <li>Nemesis AI pursues you using real-time <strong>A* / BFS / Greedy</strong> pathfinding (toggle in the AI Brain Deck).</li>
+        <li>
+          <strong>Tactical Abilities:</strong>
+          <ul>
+            <li><kbd>SPACE</kbd> — EMP Blast: 8-tile radius shockwave that paralyzes the Nemesis AI for up to 4.5s.</li>
+            <li><kbd>E</kbd> — Hologram Decoy: deploys a decoy that diverts the AI's pathfinding target.</li>
+          </ul>
+        </li>
+        <li>Collect glowing <strong>Data Cores</strong> scattered through the maze for score multipliers.</li>
+        <li>Press <kbd>TAB</kbd> to open the <strong>AI Brain Deck</strong> — live telemetry &amp; algorithm switcher.</li>
+      </ol>
+      <button id="howtoplay-close-btn">Got It</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       LOADING OVERLAY
+  ════════════════════════════════════════════════ -->
+  <div id="loading-overlay" class="overlay" style="display:none;">
+    <div class="loading-spinner"></div>
+    <p class="loading-text">Synthesizing cyber labyrinth&hellip;</p>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       SOLVED SCREEN (mazebreaker: id="solved-screen")
+  ════════════════════════════════════════════════ -->
+  <div id="solved-screen" class="overlay" style="display:none;">
+    <h1>🏆 Maze Solved!</h1>
+    <p style="color:rgba(255,255,255,0.7);">Now run through it in first person!</p>
+    <button id="start-running-btn">Start Running ▶</button>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       FINISH SCREEN
+  ════════════════════════════════════════════════ -->
+  <div id="finish-screen" class="overlay" style="display:none;">
+    <h1 id="finish-title">Complete!</h1>
+    <p id="finish-level-text" style="color:rgba(255,255,255,0.7); margin-bottom:0.5em;"></p>
+    <div class="finish-buttons">
+      <button id="next-level-btn">Next Level ▶</button>
+      <button id="restart-btn">Back to Menu</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       SOLVER PAUSE OVERLAY (mazebreaker: id="solver-pause-overlay")
+  ════════════════════════════════════════════════ -->
+  <div id="solver-pause-overlay" class="overlay" style="display:none;">
+    <h2>Paused</h2>
+    <div class="pause-menu-buttons">
+      <button id="solver-resume-btn">Resume Solving</button>
+      <button id="solver-next-level-btn">Next Level ▶</button>
+      <button id="solver-menu-btn" style="background:#666;color:#fff;">Main Menu</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       RUNNER PAUSE OVERLAY (mazebreaker: id="runner-overlay")
+  ════════════════════════════════════════════════ -->
+  <div id="runner-overlay" class="overlay" style="display:none;">
+    <h2>Paused</h2>
+    <div class="pause-settings-panel">
+      <div class="setting-row">
+        <label>Look Sensitivity: <span id="pause-sens-value">4</span></label>
+        <input type="range" id="pause-sens-slider" min="1" max="10" step="1" value="4">
+      </div>
+    </div>
+    <div class="pause-menu-buttons">
+      <button id="pause-resume-btn">Resume Running</button>
+      <button id="pause-map-btn" style="background:#0bf;color:#000;">View Map</button>
+      <button id="pause-next-level-btn" style="background:#fa0;color:#000;">Next Level</button>
+      <button id="pause-menu-btn" style="background:#666;color:#fff;">Main Menu</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       MAP OVERLAY (runner mode - shows top-down from engine)
+  ════════════════════════════════════════════════ -->
+  <div id="map-overlay" style="display:none;">
+    <button id="map-resume-btn">Resume Running</button>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       IN-GAME PAUSE BUTTON (mazebreaker exact: id="pause-btn")
+  ════════════════════════════════════════════════ -->
+  <button id="pause-btn" title="Pause [ESC/P]">⏸</button>
+
+  <!-- ════════════════════════════════════════════════
+       CROSSHAIR + MINIMAP + POINTER HINT (runner mode)
+  ════════════════════════════════════════════════ -->
+  <div id="crosshair"></div>
+  <canvas id="mini-map-canvas" width="130" height="130"></canvas>
+  <div id="pointer-lock-hint">Click to look around · ESC to pause</div>
+
+  <!-- ════════════════════════════════════════════════
+       TOP CYBER HUD (hackathon addition)
+  ════════════════════════════════════════════════ -->
+  <header id="cyber-hud-top" style="display:none;">
+    <div class="hud-brand">
+      <div class="pulse-indicator"></div>
+      <div class="brand-text">
+        <span class="brand-title">CYBER MAZE 3D</span>
+        <span class="brand-subtitle">NEMESIS AI // A* PATHFINDING</span>
+      </div>
+      <span class="hud-badge" id="hud-diff-badge">13×13</span>
+    </div>
+
+    <div class="hud-center-stats">
+      <div class="hud-metric-box">
+        <span class="metric-label">TIME</span>
+        <span class="metric-value blue" id="hud-time">00:00.0</span>
+      </div>
+      <div class="hud-metric-box">
+        <span class="metric-label">SCORE</span>
+        <span class="metric-value" id="hud-score">0</span>
+      </div>
+      <div class="hud-metric-box">
+        <div class="metric-header-row">
+          <span class="metric-label">CORES</span>
+          <span class="metric-subval" id="hud-shards">0/0</span>
+        </div>
+        <div class="shard-progress-track">
+          <div class="shard-progress-fill" id="hud-shard-bar" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="hud-metric-box">
+        <span class="metric-label">THREAT</span>
+        <span class="metric-value threat-secure" id="hud-threat">SECURE</span>
+      </div>
+    </div>
+
+    <div class="hud-right-actions">
+      <button id="btn-sound" class="cyber-btn" title="Toggle Audio">
+        <span class="btn-icon">🔊</span><span class="btn-label">AUDIO: ON</span>
+      </button>
+      <button id="btn-deck-trigger" class="cyber-btn neon-blue" title="AI Brain Deck [Tab]">
+        <span class="btn-icon">📊</span><span class="btn-label">AI DECK [TAB]</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ════════════════════════════════════════════════
+       TACTICAL DOCK (bottom)
+  ════════════════════════════════════════════════ -->
+  <nav id="tactical-dock" style="display:none;">
+    <div class="dock-container">
+      <button id="dock-emp" class="dock-btn dock-btn-ability" title="EMP Blast [Space]">
+        <div class="dock-key">SPACE</div>
+        <div class="dock-icon-wrapper">
+          <span class="dock-icon">⚡</span>
+          <span class="dock-badge" id="dock-emp-count">2</span>
+        </div>
+        <div class="dock-info">
+          <span class="dock-name">EMP BLAST</span>
+          <span class="dock-status" id="dock-emp-status">READY</span>
+        </div>
+        <div class="cooldown-gauge" id="dock-emp-gauge"></div>
+      </button>
+
+      <button id="dock-decoy" class="dock-btn dock-btn-ability" title="Spirit Decoy [E]">
+        <div class="dock-key">E</div>
+        <div class="dock-icon-wrapper">
+          <span class="dock-icon">👤</span>
+          <span class="dock-badge purple" id="dock-decoy-count">1</span>
+        </div>
+        <div class="dock-info">
+          <span class="dock-name">DECOY</span>
+          <span class="dock-status" id="dock-decoy-status">READY</span>
+        </div>
+        <div class="cooldown-gauge purple" id="dock-decoy-gauge"></div>
+      </button>
+
+      <div class="dock-divider"></div>
+    </div>
+  </nav>
+
+  <!-- ════════════════════════════════════════════════
+       AI BRAIN DECK (sliding right panel)
+  ════════════════════════════════════════════════ -->
+  <aside id="cyber-deck" class="sliding-cyber-deck">
+    <button id="deck-pull-tab" class="deck-tab-handle" title="AI Brain Deck [Tab]">
+      <span class="tab-arrow">◀</span>
+      <span class="tab-vertical-text">AI BRAIN</span>
+      <span class="tab-dot"></span>
+    </button>
+
+    <div class="deck-scroll-content">
+      <div class="deck-header">
+        <div class="deck-header-info">
+          <div class="deck-header-badge">LIVE TELEMETRY</div>
+          <h2>AI BRAIN DECK</h2>
+        </div>
+        <button id="btn-close-deck" class="deck-close-btn">✕</button>
+      </div>
+
+      <!-- Telemetry -->
+      <div class="deck-card telemetry-box">
+        <div class="card-header">
+          <span class="card-title">TRAVERSAL METRICS</span>
+          <div class="live-ping"></div>
+        </div>
+        <div class="telemetry-grid">
+          <div class="telemetry-item">
+            <span class="t-label">Algorithm</span>
+            <span class="t-value blue" id="telemetry-algo">A*</span>
+          </div>
+          <div class="telemetry-item">
+            <span class="t-label">Enemy State</span>
+            <span class="t-value" style="color:#ff2244" id="telemetry-state">HUNTING</span>
+          </div>
+          <div class="telemetry-item">
+            <span class="t-label">Nodes</span>
+            <span class="t-value" id="telemetry-nodes">0</span>
+          </div>
+          <div class="telemetry-item">
+            <span class="t-label">Path Length</span>
+            <span class="t-value" id="telemetry-path">0</span>
+          </div>
+          <div class="telemetry-item full-width">
+            <div class="flex-between">
+              <span class="t-label">Latency</span>
+              <span class="t-value" id="telemetry-latency">0.0 ms</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Algorithm Selector -->
+      <div class="deck-card">
+        <div class="card-header"><span class="card-title">PATHFINDING ALGORITHM</span></div>
+        <div class="deck-segmented-control" id="algo-toggle-group">
+          <button class="active" data-algo="A*"><strong>A*</strong><small>Heuristic</small></button>
+          <button data-algo="BFS"><strong>BFS</strong><small>Wave</small></button>
+          <button data-algo="Greedy"><strong>Greedy</strong><small>Pursuit</small></button>
+        </div>
+      </div>
+
+      <!-- Overlays -->
+      <div class="deck-card">
+        <div class="card-header"><span class="card-title">DIAGNOSTIC OVERLAYS</span></div>
+        <div class="deck-toggle-row">
+          <div class="toggle-info"><span class="toggle-name">AI Path Vector</span><span class="toggle-desc">Red line of planned path</span></div>
+          <button id="btn-toggle-vector" class="cyber-switch active">ON</button>
+        </div>
+        <div class="deck-toggle-row">
+          <div class="toggle-info"><span class="toggle-name">Search Frontier</span><span class="toggle-desc">Blue explored nodes</span></div>
+          <button id="btn-toggle-frontier" class="cyber-switch active">ON</button>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="deck-card">
+        <div class="card-header"><span class="card-title">CONTROLS</span></div>
+        <div class="controls-cheatsheet">
+          <div class="control-row"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>Move</span></div>
+          <div class="control-row"><kbd>SPACE</kbd><span>EMP Blast (stuns AI)</span></div>
+          <div class="control-row"><kbd>E</kbd><span>Spirit Decoy</span></div>
+          <div class="control-row"><kbd>TAB</kbd><span>AI Brain Deck</span></div>
+          <div class="control-row"><kbd>ESC</kbd><span>Pause</span></div>
+          <div class="control-row"><kbd>F</kbd><span>Fullscreen</span></div>
+          <div class="control-row"><kbd>R</kbd><span>Back to Menu</span></div>
+        </div>
+      </div>
+
+      <!-- Legend -->
+      <div class="deck-card">
+        <div class="card-header"><span class="card-title">COLOUR LEGEND</span></div>
+        <div class="legend-grid">
+          <div class="legend-chip"><div class="legend-dot" style="background:#06B614;box-shadow:0 0 6px #06B614"></div><span>Current Position</span></div>
+          <div class="legend-chip"><div class="legend-dot" style="background:#22D2CE;box-shadow:0 0 4px #22D2CE"></div><span>Visited Trail</span></div>
+          <div class="legend-chip"><div class="legend-dot dot-enemy"></div><span>Nemesis AI</span></div>
+          <div class="legend-chip"><div class="legend-dot dot-path"></div><span>AI Path</span></div>
+          <div class="legend-chip"><div class="legend-dot dot-wave"></div><span>Frontier</span></div>
+          <div class="legend-chip"><div class="legend-dot dot-exit"></div><span>Exit</span></div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ════════════════════════════════════════════════
+       TOUCH CONTROLS (mazebreaker exact IDs)
+  ════════════════════════════════════════════════ -->
+  <div id="touch-dpad" style="display:none;">
+    <button id="dpad-up">▲</button>
+    <div class="dpad-row">
+      <button id="dpad-left">◀</button>
+      <button id="dpad-right">▶</button>
+    </div>
+    <button id="dpad-down">▼</button>
+  </div>
+  <div id="touch-look-zone" style="display:none;"></div>
+  <button id="touch-pause-btn" style="display:none;">⏸</button>
+
+  <!-- ════════════════════════════════════════════════
+       SCRIPTS
+       Non-module scripts first, then ES module
+  ════════════════════════════════════════════════ -->
+  <script src="src/pathfinding.js"></script>
+  <script src="src/maze.js"></script>
+  <script src="src/audio.js"></script>
+  <script type="module" src="src/game3d.js"></script>
+
+</body>
+</html>

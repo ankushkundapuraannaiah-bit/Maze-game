@@ -1,0 +1,34 @@
+{
+  "name": "cyber-maze-3d",
+  "version": "1.0.0",
+  "description": "Cyber Maze 3D: High-stakes tactical maze game featuring real-time AI pathfinding (A*, BFS, Greedy), procedural audio, and 3D graphics.",
+  "main": "index.html",
+  "scripts": {
+    "start": "python serve.py",
+    "dev": "python serve.py",
+    "test": "node test_game.js",
+    "build": "node -e \"console.log('Static build ready for Vercel deployment')\""
+  },
+  "keywords": [
+    "maze",
+    "pathfinding",
+    "a-star",
+    "bfs",
+    "threejs",
+    "webgl",
+    "cyberpunk",
+    "game",
+    "ai",
+    "procedural-generation"
+  ],
+  "author": "Ankush Kundapura Annaiah",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ankushkundapuraannaiah-bit/Maze-game.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ankushkundapuraannaiah-bit/Maze-game/issues"
+  },
+  "homepage": "https://github.com/ankushkundapuraannaiah-bit/Maze-game#readme"
+}
