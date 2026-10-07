@@ -7,7 +7,7 @@
     "start": "python serve.py",
     "dev": "python serve.py",
     "test": "node test_game.js",
-    "build": "node -e \"console.log('Static build ready for Vercel deployment')\""
+    "build": "node build.js"
   },
   "keywords": [
     "maze",

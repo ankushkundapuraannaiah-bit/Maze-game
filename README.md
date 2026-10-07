@@ -214,18 +214,20 @@ Implemented in [`src/audio.js`](src/audio.js):
 
 ```
 cyber-maze/
-├── index.html            # Main entry point (Vercel & root URL)
+├── index.html            # Main entry point (root URL)
 ├── index3d.html          # Modular 3D game client
 ├── cyber-maze-3d.html    # Standalone all-in-one offline bundle
 ├── styles3d.css          # Responsive styling (HUD, tactical dock, AI deck)
 ├── styles.css            # Cyber theme fallback styles
 ├── serve.py              # Zero-dependency 1-click Python launcher
-├── vercel.json           # Vercel deployment, rewrites, and security headers
-├── package.json          # Project metadata and test scripts
+├── build.js              # Static build script synchronizing assets to public/
+├── vercel.json           # Vercel deployment, outputDirectory, rewrites & headers
+├── package.json          # Project metadata, build & test scripts
 ├── .gitignore            # Git exclusion rules
 ├── favicon.svg           # Cyber maze SVG icon
 ├── test_game.js          # Automated unit test suite (15 tests)
 ├── README.md             # Project documentation
+├── public/               # Output directory for Vercel deployment
 └── src/
     ├── pathfinding.js    # A*, BFS, and Greedy algorithms with binary heap
     ├── maze.js           # Procedural DFS generator, loop braiding, item placement
